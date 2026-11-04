@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b4532a">
+<title>Мой гардероб</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Гардероб">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Comfortaa:wght@700&family=Lora:ital,wght@1,600&family=Montserrat:wght@300;500&family=Nunito:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-season="autumn">
+
+<div class="backdrop" aria-hidden="true">
+  <div class="bg bg-summer"><div class="sun"></div><div class="waves"></div></div>
+  <div class="bg bg-autumn"><div class="fall" id="leaves"></div></div>
+  <div class="bg bg-winter"><div class="fall" id="snow"></div></div>
+  <div class="bg bg-spring"><div class="fall" id="petals"></div></div>
+</div>
+
+<header class="top">
+  <h1 class="logo">Мой гардероб</h1>
+  <div class="seasons" role="radiogroup" aria-label="Время года" id="seasonSwitch"></div>
+</header>
+
+<nav class="tabs" aria-label="Разделы">
+  <button type="button" data-act="view" data-view="items"><span aria-hidden="true">👕</span>Вещи</button>
+  <button type="button" data-act="view" data-view="outfits"><span aria-hidden="true">🧥</span>Образы</button>
+  <button type="button" data-act="view" data-view="build"><span aria-hidden="true">✨</span>Подбор</button>
+  <button type="button" data-act="view" data-view="stats"><span aria-hidden="true">📊</span>Статистика</button>
+  <button type="button" data-act="view" data-view="more"><span aria-hidden="true">👤</span>Аккаунт</button>
+</nav>
+
+<main>
+  <section id="view-items" class="view">
+    <div class="bar">
+      <h2>Вещи <small class="muted" id="itemCount"></small></h2>
+      <button type="button" class="btn" data-act="add-item">＋ Добавить вещь</button>
+    </div>
+    <div class="filters">
+      <label><span class="sr">Категория</span><select id="filterCat"><option value="">Все категории</option></select></label>
+      <label><span class="sr">Сезон</span><select id="filterSeason"><option value="">Все сезоны</option></select></label>
+    </div>
+    <div class="grid" id="itemGrid"></div>
+  </section>
+
+  <section id="view-outfits" class="view" hidden>
+    <div class="bar">
+      <h2>Образы</h2>
+      <button type="button" class="btn" data-act="new-outfit">＋ Новый образ</button>
+    </div>
+    <div class="grid" id="outfitGrid"></div>
+  </section>
+
+  <section id="view-build" class="view" hidden>
+    <h2>Собери мне образ</h2>
+    <p class="muted">Выберите сезон — подберу из ваших вещей самое удачное сочетание.</p>
+    <fieldset class="plain"><legend class="sr">Сезон</legend><div class="chips" id="bSeason"></div></fieldset>
+    <button type="button" class="btn big" data-act="build">✨ Собери мне образ</button>
+    <div id="buildOut"></div>
+  </section>
+
+  <section id="view-stats" class="view" hidden>
+    <h2>Статистика</h2>
+    <div id="statsOut"></div>
+  </section>
+
+  <section id="view-more" class="view" hidden>
+    <h2>Аккаунт</h2>
+    <div class="panel"><div id="accountBox"></div></div>
+  </section>
+</main>
+
+<footer class="foot"><span class="rate-info"></span> · <button type="button" class="link" data-act="rates">Обновить курс</button></footer>
+
+<dialog id="itemDlg" aria-labelledby="itemTitle">
+  <form id="itemForm" novalidate>
+    <div class="dlg-head"><h2 id="itemTitle">Новая вещь</h2><button type="button" class="icon-btn" data-act="close" aria-label="Закрыть">✕</button></div>
+    <div class="dlg-body">
+      <div class="photo-row">
+        <div class="photo-box"><img id="photoPreview" alt="Фото вещи" hidden><span id="photoEmpty">Нет фото</span></div>
+        <div class="photo-btns">
+          <label class="btn ghost file-btn">📁 Выбрать фото<input type="file" accept="image/*" id="photoFile" class="sr"></label>
+          <label class="btn ghost file-btn">📷 Снять камерой<input type="file" accept="image/*" capture="environment" id="photoCam" class="sr"></label>
+          <div class="color-row">
+            <input type="color" id="fColor" aria-label="Главный цвет">
+            <span class="muted small" id="colorHint">Главный цвет определится по фото. Нажмите на кружок, чтобы поправить.</span>
+          </div>
+        </div>
+      </div>
+      <label class="field"><span>Название</span><input id="fName" maxlength="100" placeholder="Например, синие джинсы" autocomplete="off"></label>
+      <div class="field">
+        <span id="priceLbl">Стоимость</span>
+        <div class="price-row">
+          <input id="fPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" aria-labelledby="priceLbl">
+          <button type="button" class="cur-btn" id="curBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Валюта"></button>
+          <div class="curpop" id="curPop" hidden>
+            <input id="curSearch" type="search" placeholder="Поиск валюты…" aria-label="Поиск валюты" autocomplete="off">
+            <div id="curList" role="listbox" aria-label="Валюты"></div>
+          </div>
+        </div>
+        <div class="muted small" id="rubPreview"></div>
+        <label class="manual" id="manualBox" hidden><span id="manualLbl"></span><input id="fManual" type="number" inputmode="decimal" min="0" step="0.0001" placeholder="Курс в рублях"></label>
+      </div>
+      <label class="field"><span>Категория</span><select id="fCat"></select></label>
+      <fieldset class="field"><legend>Сезоны</legend><div class="chips" id="fSeasons"></div></fieldset>
+      <label class="field"><span>Стиль</span><select id="fStyle"></select></label>
+      <label class="field"><span>Сколько раз надевал</span><input id="fWorn" type="number" inputmode="numeric" min="0" step="1"></label>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger" id="delItem">Удалить</button>
+      <button type="submit" class="btn">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="outfitDlg" aria-labelledby="outfitTitle">
+  <form id="outfitForm" novalidate>
+    <div class="dlg-head">
+      <h2 id="outfitTitle">Образ</h2>
+      <button type="button" class="icon-btn heart-btn" id="oFav" aria-pressed="false" aria-label="В избранное">♡</button>
+      <button type="button" class="icon-btn" data-act="close" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="dlg-body">
+      <label class="field"><span>Название</span><input id="oName" maxlength="80" placeholder="Например, прогулка в парке" autocomplete="off"></label>
+      <fieldset class="field"><legend>Сезон образа</legend><div class="chips" id="oSeason"></div></fieldset>
+      <div id="oBoard"></div>
+      <div class="score-box" id="oScore" aria-live="polite"></div>
+      <div class="field"><span>Отметьте вещи <small class="muted" id="oCount"></small></span><div class="pick" id="oPick"></div></div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger" id="oDel">Удалить</button>
+      <button type="button" class="btn ghost" id="oWear">Надел сегодня</button>
+      <button type="submit" class="btn">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" popover="manual" role="status"></div>
+
+<script src="logic.js"></script>
+<script src="sync.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
