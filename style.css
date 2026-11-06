@@ -410,6 +410,8 @@ dialog form { display: flex; flex-direction: column; max-height: inherit; }
 .file-btn { position: relative; padding: 0 12px; font-size: .95rem; }
 .file-btn:focus-within { outline: 3px solid var(--accent2); outline-offset: 2px; }
 .color-row { display: flex; align-items: center; gap: 10px; }
+.bg-row { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 700; cursor: pointer; }
+.bg-row input { width: 22px; height: 22px; min-height: 0; accent-color: var(--accent); }
 input[type="color"] {
   flex: none; width: 48px; height: 48px; min-height: 0; padding: 0; border: 3px solid #fff; border-radius: 50%;
   box-shadow: 0 0 0 1.5px var(--line), 0 2px 6px rgba(0, 0, 0, .15); cursor: pointer; background: none;

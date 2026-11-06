@@ -231,6 +231,7 @@ function openItem(it) {
   $('#fColor').value = d.color;
   $('#fWorn').value = d.worn;
   formPhoto = d.photo;
+  photoOrig = photoCut = null; $('#bgRow').hidden = true;
   showPhoto();
   $('#colorHint').textContent = 'Главный цвет определится по фото. Нажмите на кружок, чтобы поправить.';
   $('#delItem').hidden = !it;
@@ -290,11 +291,74 @@ async function processPhoto(file) {
   const g = c.getContext('2d');
   g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); // прозрачный PNG → белый фон в JPEG
   g.drawImage(img, 0, 0, c.width, c.height);
-  const sk = 64 / Math.max(w, h), sw = Math.max(1, Math.round(w * sk)), sh = Math.max(1, Math.round(h * sk));
+  return { photo: c.toDataURL('image/jpeg', 0.82), color: colorOf(img), canvas: c };
+}
+// Главный цвет по уменьшенной копии; прозрачные пиксели (вырезанный фон) не считаются.
+function colorOf(src) {
+  const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
+  const k = 64 / Math.max(w, h), sw = Math.max(1, Math.round(w * k)), sh = Math.max(1, Math.round(h * k));
   const sc = document.createElement('canvas'); sc.width = sw; sc.height = sh;
   const sg = sc.getContext('2d', { willReadFrequently: true });
-  sg.drawImage(img, 0, 0, sw, sh);
-  return { photo: c.toDataURL('image/jpeg', 0.82), color: dominantColor(sg.getImageData(0, 0, sw, sh).data, sw, sh) };
+  sg.drawImage(src, 0, 0, sw, sh);
+  return dominantColor(sg.getImageData(0, 0, sw, sh).data, sw, sh);
+}
+
+// ================= Удаление фона: нейросеть U²-Net-p прямо на устройстве, без серверов =================
+let bgSession;
+function bgModel() {
+  if (!bgSession) bgSession = (async () => {
+    if (!window.ort) await new Promise((res, rej) => {
+      const s = document.createElement('script'); s.src = 'ai/ort.wasm.min.js'; s.onload = res; s.onerror = rej; document.head.append(s);
+    });
+    ort.env.wasm.numThreads = 1; // несколько потоков требуют особых заголовков сервера, которых нет на GitHub Pages
+    ort.env.wasm.wasmPaths = new URL('ai/', location.href).href;
+    return ort.InferenceSession.create('ai/u2netp.onnx');
+  })().catch(e => { bgSession = null; throw e; });
+  return bgSession;
+}
+// Вход: canvas с фото. Выход: canvas того же размера, где фон прозрачный.
+async function removeBg(src) {
+  const N = 320, n = N * N, session = await bgModel();
+  const c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(src, 0, 0, N, N);
+  const px = g.getImageData(0, 0, N, N).data, input = new Float32Array(3 * n);
+  let max = 1;
+  for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i], px[i + 1], px[i + 2]);
+  const mean = [0.485, 0.456, 0.406], std = [0.229, 0.224, 0.225]; // нормировка, на которой обучали U²-Net
+  for (let i = 0; i < n; i++) for (let ch = 0; ch < 3; ch++) input[ch * n + i] = (px[i * 4 + ch] / max - mean[ch]) / std[ch];
+  const res = await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', input, [1, 3, N, N]) });
+  const pred = res[session.outputNames[0]].data;
+  let lo = Infinity, hi = -Infinity;
+  for (const v of pred) { if (v < lo) lo = v; if (v > hi) hi = v; }
+  const mask = g.createImageData(N, N);
+  for (let i = 0; i < n; i++) mask.data[i * 4 + 3] = 255 * (pred[i] - lo) / (hi - lo || 1);
+  g.putImageData(mask, 0, 0);
+  const out = document.createElement('canvas'); out.width = src.width; out.height = src.height;
+  const o = out.getContext('2d');
+  o.drawImage(c, 0, 0, out.width, out.height); // маска, растянутая до размера фото
+  o.globalCompositeOperation = 'source-in';
+  o.drawImage(src, 0, 0);
+  return out;
+}
+
+let photoOrig = null, photoCut = null; // оба варианта нового фото, пока форма открыта
+async function applyBgChoice() {
+  if (!photoOrig) return;
+  if ($('#fNoBg').checked && !photoCut) {
+    $('#photoEmpty').hidden = false; $('#photoEmpty').textContent = 'Убираю фон…'; $('#photoPreview').hidden = true;
+    try {
+      const cut = await removeBg(photoOrig.canvas);
+      photoCut = { photo: cut.toDataURL('image/webp', 0.85), color: colorOf(cut) }; // webp хранит прозрачность и меньше png
+    } catch {
+      toast('Не удалось убрать фон — оставлено исходное фото');
+      $('#fNoBg').checked = false;
+    }
+  }
+  const r = $('#fNoBg').checked && photoCut ? photoCut : photoOrig;
+  formPhoto = r.photo;
+  $('#fColor').value = r.color;
+  showPhoto();
 }
 async function onPhoto(e) {
   const f = e.target.files[0];
@@ -302,14 +366,14 @@ async function onPhoto(e) {
   if (!f) return;
   $('#photoEmpty').hidden = false; $('#photoEmpty').textContent = 'Обработка…';
   try {
-    const r = await processPhoto(f);
-    formPhoto = r.photo;
-    $('#fColor').value = r.color;
+    photoOrig = await processPhoto(f); photoCut = null;
+    $('#bgRow').hidden = false;
     $('#colorHint').textContent = 'Цвет определён по фото. Не тот? Нажмите на кружок и поправьте.';
+    await applyBgChoice();
   } catch {
     toast('Не удалось открыть фото. Попробуйте JPEG или PNG.');
+    showPhoto();
   }
-  showPhoto();
 }
 async function saveItem(e) {
   e.preventDefault();
@@ -557,6 +621,7 @@ function init() {
   $('#delItem').onclick = deleteItem;
   $('#photoFile').onchange = onPhoto;
   $('#photoCam').onchange = onPhoto;
+  $('#fNoBg').onchange = applyBgChoice;
   $('#fPrice').oninput = updateCurUI;
   $('#fManual').oninput = e => {
     const v = parseFloat(e.target.value);

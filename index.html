@@ -32,9 +32,9 @@
 <nav class="tabs" aria-label="Разделы">
   <button type="button" data-act="view" data-view="items"><span aria-hidden="true">👕</span>Вещи</button>
   <button type="button" data-act="view" data-view="outfits"><span aria-hidden="true">🧥</span>Образы</button>
-  <button type="button" data-act="view" data-view="build"><span aria-hidden="true">✨</span>Подбор</button>
-  <button type="button" data-act="view" data-view="stats"><span aria-hidden="true">📊</span>Статистика</button>
   <button type="button" data-act="view" data-view="more"><span aria-hidden="true">👤</span>Аккаунт</button>
+  <button type="button" data-act="view" data-view="stats"><span aria-hidden="true">📊</span>Статистика</button>
+  <button type="button" data-act="view" data-view="sub"><span aria-hidden="true">⭐</span>Подписка</button>
 </nav>
 
 <main>
@@ -53,7 +53,10 @@
   <section id="view-outfits" class="view" hidden>
     <div class="bar">
       <h2>Образы</h2>
-      <button type="button" class="btn" data-act="new-outfit">＋ Новый образ</button>
+      <div class="row">
+        <button type="button" class="btn ghost" data-act="view" data-view="build">✨ Собери мне образ</button>
+        <button type="button" class="btn" data-act="new-outfit">＋ Новый образ</button>
+      </div>
     </div>
     <div class="grid" id="outfitGrid"></div>
   </section>
@@ -75,6 +78,14 @@
     <h2>Аккаунт</h2>
     <div class="panel"><div id="accountBox"></div></div>
   </section>
+
+  <section id="view-sub" class="view" hidden>
+    <h2>Подписка</h2>
+    <div class="panel">
+      <h3>Скоро</h3>
+      <p class="muted">Здесь появится подписка с дополнительными функциями. Пока всё приложение бесплатное.</p>
+    </div>
+  </section>
 </main>
 
 <footer class="foot"><span class="rate-info"></span> · <button type="button" class="link" data-act="rates">Обновить курс</button></footer>
@@ -88,6 +99,7 @@
         <div class="photo-btns">
           <label class="btn ghost file-btn">📁 Выбрать фото<input type="file" accept="image/*" id="photoFile" class="sr"></label>
           <label class="btn ghost file-btn">📷 Снять камерой<input type="file" accept="image/*" capture="environment" id="photoCam" class="sr"></label>
+          <label class="bg-row" id="bgRow" hidden><input type="checkbox" id="fNoBg" checked> Убрать фон</label>
           <div class="color-row">
             <input type="color" id="fColor" aria-label="Главный цвет">
             <span class="muted small" id="colorHint">Главный цвет определится по фото. Нажмите на кружок, чтобы поправить.</span>
