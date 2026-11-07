@@ -43,6 +43,10 @@ check('Проверка данных: раскладка образа прове
 
 check('Синхронизация: время изменения сохраняется при проверке', sanitizeItem({ id: 'a', updatedAt: 123 }).updatedAt === 123 && sanitizeOutfit({ id: 'o', updatedAt: 'x' }).updatedAt === 0);
 
+check('Ссылка: достаётся из текста, опасные адреса отбрасываются',
+  cleanUrl('Смотри куртку https://www.wildberries.ru/catalog/123/detail.aspx?x=1 крутая') === 'https://www.wildberries.ru/catalog/123/detail.aspx?x=1'
+  && cleanUrl('javascript:alert(1)') === '' && cleanUrl('') === '' && sanitizeItem({ id: 'a', url: 'ozon.ru' }).url === '');
+
 const pool = [...perfect, it({ category: 'shoes', seasons: ['winter'], name: 'сапоги' })];
 const built = buildOutfits(pool, 'summer');
 check('Подбор: лучший вариант — 100%, варианты разные', built[0].score === 100 && built.length === 2 && built[1].score < 100);

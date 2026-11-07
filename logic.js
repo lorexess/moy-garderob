@@ -195,12 +195,19 @@ function perWearLabel(item, rateFn) {
 
 // ---------- Проверка данных из файла копии ----------
 const PHOTO_RE = /^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/;
+// Ссылка на товар: берём первый http(s)-адрес из текста («Смотри https://…»), остальное — пусто (никаких javascript:).
+function cleanUrl(v) {
+  const m = String(v ?? '').match(/https?:\/\/[^\s"'<>]+/i);
+  if (!m) return '';
+  try { const u = new URL(m[0]); return /^https?:$/.test(u.protocol) ? u.href.slice(0, 2000) : ''; } catch { return ''; }
+}
 function sanitizeItem(x) {
   if (!x || typeof x !== 'object' || typeof x.id !== 'string' || !x.id) return null;
   const num = v => (Number.isFinite(+v) && +v >= 0 ? +v : 0);
   return {
     id: x.id.slice(0, 64),
     name: String(x.name ?? '').trim().slice(0, 100) || 'Без названия',
+    url: cleanUrl(x.url),
     photo: typeof x.photo === 'string' && PHOTO_RE.test(x.photo) ? x.photo : '',
     price: num(x.price),
     currency: /^[A-Z]{3}$/.test(x.currency) ? x.currency : 'RUB',

@@ -109,15 +109,16 @@ function renderItems() {
   const list = S.items.filter(i => (!f.cat || i.category === f.cat) && (!f.season || i.seasons.includes(f.season))).sort((a, b) => b.created - a.created);
   $('#itemCount').textContent = S.items.length ? `${list.length} из ${S.items.length}` : '';
   $('#itemGrid').innerHTML = list.map(i => `
-    <button type="button" class="card" data-act="edit-item" data-id="${esc(i.id)}" aria-label="Изменить: ${esc(i.name)}">
+    <article class="card">
+      <button type="button" class="card-hit" data-act="edit-item" data-id="${esc(i.id)}" aria-label="Изменить: ${esc(i.name)}"></button>
       <span class="ph">${i.photo ? `<img src="${i.photo}" alt="" loading="lazy">` : '<span class="noimg">👕</span>'}<span class="dot" style="background:${i.color}"></span></span>
       <span class="body">
-        <span class="name">${esc(i.name)}</span>
+        ${i.url ? `<a class="name link-name" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.name)} <span aria-hidden="true">↗</span></a>` : `<span class="name">${esc(i.name)}</span>`}
         <span class="price">${esc(priceLabel(i, rate))}</span>
         <span class="meta">${esc(perWearLabel(i, rate))}</span>
         <span class="meta">${i.seasons.map(s => SEASONS[s].icon).join(' ') || 'без сезона'} · надевал: ${i.worn}</span>
       </span>
-    </button>`).join('') || emptyHtml(S.items.length ? 'Под фильтр ничего не подошло.' : 'Гардероб пока пуст. Добавьте первую вещь или заполните примером.', !S.items.length);
+    </article>`).join('') || emptyHtml(S.items.length ? 'Под фильтр ничего не подошло.' : 'Гардероб пока пуст. Добавьте первую вещь или заполните примером.', !S.items.length);
 }
 
 function renderOutfits() {
@@ -223,6 +224,7 @@ function openItem(it) {
   const d = it || { name: '', price: '', currency: ls.get('lastCur', 'RUB'), category: 'top', seasons: [S.season], style: 'casual', color: '#888888', worn: 0, photo: '' };
   $('#itemTitle').textContent = it ? 'Изменить вещь' : 'Новая вещь';
   $('#fName').value = d.name;
+  $('#fUrl').value = d.url || '';
   $('#fPrice').value = d.price || '';
   formCur = d.currency;
   $('#fCat').value = d.category;
@@ -381,7 +383,7 @@ async function saveItem(e) {
   if (!name) { $('#fName').focus(); toast('Введите название вещи'); return; }
   const it = sanitizeItem({
     ...(editing || { id: uid(), created: Date.now() }),
-    name, photo: formPhoto, price: parseFloat($('#fPrice').value) || 0, currency: formCur,
+    name, url: $('#fUrl').value, photo: formPhoto, price: parseFloat($('#fPrice').value) || 0, currency: formCur,
     category: $('#fCat').value, seasons: $$('#fSeasons input:checked').map(i => i.value),
     style: $('#fStyle').value, color: $('#fColor').value, worn: parseInt($('#fWorn').value, 10) || 0,
   });
